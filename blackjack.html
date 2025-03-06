@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c3e50;
+            color: white;
+        }
+        #game-area {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 800px;
+        }
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .card {
+            width: 100px;
+            height: 145px;
+            margin: 5px;
+            background-size: cover;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Blackjack</h1>
+    <div id="game-area">
+        <div id="dealer-area">
+            <h2>Dealer's Hand</h2>
+            <div id="dealer-hand" class="hand"></div>
+            <p>Dealer's Score: <span id="dealer-score">0</span></p>
+        </div>
+        <div id="player-area">
+            <h2>Your Hand</h2>
+            <div id="player-hand" class="hand"></div>
+            <p>Your Score: <span id="player-score">0</span></p>
+        </div>
+    </div>
+    <div id="controls">
+        <button id="hit-button">Hit</button>
+        <button id="stand-button">Stand</button>
+        <button id="new-game-button">New Game</button>
+    </div>
+    <p id="message"></p>
+
+    <script>
+        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        let deck = [];
+        let playerHand = [];
+        let dealerHand = [];
+        let gameOver = false;
+
+        function createDeck() {
+            deck = [];
+            for (let suit of suits) {
+                for (let value of values) {
+                    deck.push({ suit, value });
+                }
+            }
+        }
+
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        function dealCard() {
+            return deck.pop();
+        }
+
+        function calculateHandValue(hand) {
+            let value = 0;
+            let hasAce = false;
+            for (let card of hand) {
+                if (card.value === 'A') {
+                    hasAce = true;
+                }
+                value += cardValue(card);
+            }
+            if (hasAce && value + 10 <= 21) {
+                value += 10;
+            }
+            return value;
+        }
+
+        function cardValue(card) {
+            if (card.value === 'A') {
+                return 1;
+            } else if (['K', 'Q', 'J'].includes(card.value)) {
+                return 10;
+            } else {
+                return parseInt(card.value);
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('player-hand').innerHTML = '';
+            document.getElementById('dealer-hand').innerHTML = '';
+            
+            playerHand.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.style.backgroundImage = `url('https://deckofcardsapi.com/static/img/${card.value}${card.suit[0].toUpperCase()}.png')`;
+                document.getElementById('player-hand').appendChild(cardElement);
+            });
+
+            dealerHand.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                if (index === 0 && !gameOver) {
+                    cardElement.style.backgroundImage = `url('https://deckofcardsapi.com/static/img/back.png')`;
+                } else {
+                    cardElement.style.backgroundImage = `url('https://deckofcardsapi.com/static/img/${card.value}${card.suit[0].toUpperCase()}.png')`;
+                }
+                document.getElementById('dealer-hand').appendChild(cardElement);
+            });
+
+            document.getElementById('player-score').textContent = calculateHandValue(playerHand);
+            document.getElementById('dealer-score').textContent = gameOver ? calculateHandValue(dealerHand) : '?';
+        }
+
+        function startNewGame() {
+            createDeck();
+            shuffleDeck();
+            playerHand = [dealCard(), dealCard()];
+            dealerHand = [dealCard(), dealCard()];
+            gameOver = false;
+            document.getElementById('message').textContent = '';
+            updateUI();
+            document.getElementById('hit-button').disabled = false;
+            document.getElementById('stand-button').disabled = false;
+        }
+
+        function playerHit() {
+            playerHand.push(dealCard());
+            if (calculateHandValue(playerHand) > 21) {
+                endGame('You bust! Dealer wins.');
+            }
+            updateUI();
+        }
+
+        function playerStand() {
+            gameOver = true;
+            while (calculateHandValue(dealerHand) < 17) {
+                dealerHand.push(dealCard());
+            }
+            const playerScore = calculateHandValue(playerHand);
+            const dealerScore = calculateHandValue(dealerHand);
+            if (dealerScore > 21) {
+                endGame('Dealer busts! You win!');
+            } else if (dealerScore > playerScore) {
+                endGame('Dealer wins!');
+            } else if (playerScore > dealerScore) {
+                endGame('You win!');
+            } else {
+                endGame('It\'s a tie!');
+            }
+        }
+
+        function endGame(message) {
+            gameOver = true;
+            document.getElementById('message').textContent = message;
+            document.getElementById('hit-button').disabled = true;
+            document.getElementById('stand-button').disabled = true;
+            updateUI();
+        }
+
+        document.getElementById('new-game-button').addEventListener('click', startNewGame);
+        document.getElementById('hit-button').addEventListener('click', playerHit);
+        document.getElementById('stand-button').addEventListener('click', playerStand);
+
+        startNewGame();
+    </script>
+</body>
+</html>
